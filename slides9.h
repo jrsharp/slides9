@@ -41,7 +41,8 @@ typedef enum {
     EMPHASIS,
     STRONG,
     TABLE_ROW,
-    TABLE_SEPARATOR
+    TABLE_SEPARATOR,
+    IMAGE
 } ElementType;
 
 /* Text formatting flags (can be combined) */
@@ -74,6 +75,13 @@ typedef struct TextSegment {
     struct TextSegment *next;
 } TextSegment;
 
+/* Structure for an image */
+typedef struct {
+    char path[MAXLINELEN];
+    char alt[MAXLINELEN];
+    Image *img;
+} ImageData;
+
 /* Structure for a line of text with formatting */
 typedef struct {
     TextSegment *segments;  /* Linked list of formatted segments */
@@ -85,6 +93,7 @@ typedef struct {
     char lang[32];          /* Language for code blocks */
     TableRow table;         /* Table data if this is a table row */
     struct CodeBlock *codeblock;
+    ImageData *image;       /* Image data if this is an image */
 } Line;
 
 /* Structure for a code block */
@@ -171,5 +180,8 @@ void endcodeblock(Slide *s);
 void freecodeblock(CodeBlock *cb);
 void processcodeblock(char *line, Slide *current);
 void drawcodeblock(CodeBlock *cb, Point *p);
+ImageData *parseimage(char *line);
+void drawimage(ImageData *img, Point *p);
+void freeimagedata(ImageData *img);
 
 #endif 

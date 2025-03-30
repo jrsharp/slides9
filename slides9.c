@@ -50,33 +50,33 @@ void
 initcolors(void)
 {
     /* Base colors */
-    back = allocimage(display, Rect(0,0,1,1), screen->chan, 1, 0xFAFAFAFF);  /* Off-white background */
-    text = allocimage(display, Rect(0,0,1,1), screen->chan, 1, 0x2C3E50FF);  /* Dark blue-grey text */
+    back = allocimage(display, Rect(0,0,1,1), screen->chan, 1, 0xFFFFFFFF);  /* Pure white background */
+    text = allocimage(display, Rect(0,0,1,1), screen->chan, 1, 0x000000FF);  /* Pure black text */
     
     /* Headers and accents */
-    accent = allocimage(display, Rect(0,0,1,1), screen->chan, 1, 0x3498DBFF); /* Bright blue */
-    dim = allocimage(display, Rect(0,0,1,1), screen->chan, 1, 0x7F8C8DFF);   /* Muted grey */
+    accent = allocimage(display, Rect(0,0,1,1), screen->chan, 1, 0x0066CCFF); /* Bright blue */
+    dim = allocimage(display, Rect(0,0,1,1), screen->chan, 1, 0x555555FF);   /* Darker grey for better contrast */
     
     /* Special elements */
-    quote = allocimage(display, Rect(0,0,1,1), screen->chan, 1, 0xECF0F1FF);  /* Light grey for quotes */
-    table = allocimage(display, Rect(0,0,1,1), screen->chan, 1, 0xBDC3C7FF);  /* Medium grey for tables */
-    lightgrey = allocimage(display, Rect(0,0,1,1), screen->chan, 1, 0xF5F6FAFF); /* Very light grey for code */
+    quote = allocimage(display, Rect(0,0,1,1), screen->chan, 1, 0xEEEEEEFF);  /* Light grey for quotes */
+    table = allocimage(display, Rect(0,0,1,1), screen->chan, 1, 0x888888FF);  /* Darker grey for tables */
+    lightgrey = allocimage(display, Rect(0,0,1,1), screen->chan, 1, 0xF0F0F0FF); /* Very light grey for code */
     
-    /* Header colors */
-    h1color = allocimage(display, Rect(0,0,1,1), screen->chan, 1, 0xE74C3CFF); /* Red */
-    h2color = allocimage(display, Rect(0,0,1,1), screen->chan, 1, 0x2980B9FF); /* Dark blue */
-    h3color = allocimage(display, Rect(0,0,1,1), screen->chan, 1, 0x27AE60FF); /* Green */
-    h4color = allocimage(display, Rect(0,0,1,1), screen->chan, 1, 0x8E44ADFF); /* Purple */
-    h5color = allocimage(display, Rect(0,0,1,1), screen->chan, 1, 0xD35400FF); /* Orange */
-    h6color = allocimage(display, Rect(0,0,1,1), screen->chan, 1, 0x16A085FF); /* Teal */
+    /* Header colors - higher contrast and more saturated */
+    h1color = allocimage(display, Rect(0,0,1,1), screen->chan, 1, 0xCC0000FF); /* Dark red */
+    h2color = allocimage(display, Rect(0,0,1,1), screen->chan, 1, 0x0055AAFF); /* Dark blue */
+    h3color = allocimage(display, Rect(0,0,1,1), screen->chan, 1, 0x007700FF); /* Dark green */
+    h4color = allocimage(display, Rect(0,0,1,1), screen->chan, 1, 0x660099FF); /* Dark purple */
+    h5color = allocimage(display, Rect(0,0,1,1), screen->chan, 1, 0x993300FF); /* Dark orange */
+    h6color = allocimage(display, Rect(0,0,1,1), screen->chan, 1, 0x006666FF); /* Dark teal */
     
-    /* Syntax highlighting colors */
-    keyword_color = allocimage(display, Rect(0,0,1,1), screen->chan, 1, 0xC0392BFF);  /* Dark red */
-    string_color = allocimage(display, Rect(0,0,1,1), screen->chan, 1, 0x27AE60FF);   /* Green */
-    number_color = allocimage(display, Rect(0,0,1,1), screen->chan, 1, 0xE67E22FF);   /* Orange */
-    comment_color = allocimage(display, Rect(0,0,1,1), screen->chan, 1, 0x7F8C8DFF);  /* Grey */
-    type_color = allocimage(display, Rect(0,0,1,1), screen->chan, 1, 0x2980B9FF);     /* Blue */
-    function_color = allocimage(display, Rect(0,0,1,1), screen->chan, 1, 0x8E44ADFF);  /* Purple */
+    /* Syntax highlighting colors - more saturated for better contrast */
+    keyword_color = allocimage(display, Rect(0,0,1,1), screen->chan, 1, 0xAA0000FF);  /* Dark red */
+    string_color = allocimage(display, Rect(0,0,1,1), screen->chan, 1, 0x007700FF);   /* Dark green */
+    number_color = allocimage(display, Rect(0,0,1,1), screen->chan, 1, 0xCC5500FF);   /* Orange */
+    comment_color = allocimage(display, Rect(0,0,1,1), screen->chan, 1, 0x555555FF);  /* Grey */
+    type_color = allocimage(display, Rect(0,0,1,1), screen->chan, 1, 0x0055AAFF);     /* Blue */
+    function_color = allocimage(display, Rect(0,0,1,1), screen->chan, 1, 0x660099FF);  /* Purple */
     
     if(back == nil || text == nil || accent == nil || dim == nil || 
        quote == nil || table == nil || lightgrey == nil ||
@@ -90,6 +90,8 @@ initcolors(void)
 void
 setupdraw(void)
 {
+    char *fontpath, *fontlargepath, *fontsmallpath;
+    
     if(display == nil)
         sysfatal("display not initialized");
     
@@ -102,37 +104,71 @@ setupdraw(void)
     if(font == nil)
         sysfatal("cannot load default font");
     
-    /* Try to load larger fonts for headers - try both pelm and lucsans */
-    Font *font24 = openfont(display, "/lib/font/bit/pelm/unicode.24.font");
-    if(font24 == nil)
-        font24 = openfont(display, "/lib/font/bit/lucsans/unicode.24.font");
+    /* Check environment for font settings */
+    fontpath = getenv("font");
+    fontlargepath = getenv("fontlarge");
+    fontsmallpath = getenv("fontsmall");
     
-    Font *font20 = openfont(display, "/lib/font/bit/pelm/unicode.20.font");
-    if(font20 == nil)
-        font20 = openfont(display, "/lib/font/bit/lucsans/unicode.20.font");
+    /* Load custom font if specified */
+    if(fontpath != nil) {
+        Font *customfont = openfont(display, fontpath);
+        if(customfont != nil)
+            font = customfont;
+        free(fontpath);
+    }
     
-    Font *font16 = openfont(display, "/lib/font/bit/pelm/unicode.16.font");
-    if(font16 == nil)
-        font16 = openfont(display, "/lib/font/bit/lucsans/unicode.16.font");
+    /* Load custom large font if specified */
+    if(fontlargepath != nil) {
+        h1font = h2font = openfont(display, fontlargepath);
+        free(fontlargepath);
+    } else {
+        /* Try to load larger fonts for headers - try both pelm and lucsans */
+        h1font = openfont(display, "/lib/font/bit/pelm/unicode.24.font");
+        if(h1font == nil)
+            h1font = openfont(display, "/lib/font/bit/lucsans/unicode.24.font");
+        
+        h2font = openfont(display, "/lib/font/bit/pelm/unicode.20.font");
+        if(h2font == nil)
+            h2font = openfont(display, "/lib/font/bit/lucsans/unicode.20.font");
+        
+        /* Fallback to default font if larger sizes not available */
+        if(h1font == nil)
+            h1font = font;
+        if(h2font == nil)
+            h2font = font;
+    }
     
-    Font *font14 = openfont(display, "/lib/font/bit/pelm/unicode.14.font");
-    if(font14 == nil)
-        font14 = openfont(display, "/lib/font/bit/lucsans/unicode.14.font");
+    /* Load custom small font if specified */
+    if(fontsmallpath != nil) {
+        h6font = openfont(display, fontsmallpath);
+        free(fontsmallpath);
+    }
     
-    /* Fallback to default font if larger sizes not available, but scale spacing accordingly */
-    h1font = font24 != nil ? font24 : font;
-    h2font = font20 != nil ? font20 : font;
-    h3font = font16 != nil ? font16 : font;
-    h4font = font14 != nil ? font14 : font;
+    /* Try to load medium fonts for h3 and h4 */
+    h3font = openfont(display, "/lib/font/bit/pelm/unicode.16.font");
+    if(h3font == nil)
+        h3font = openfont(display, "/lib/font/bit/lucsans/unicode.16.font");
+    
+    h4font = openfont(display, "/lib/font/bit/pelm/unicode.14.font");
+    if(h4font == nil)
+        h4font = openfont(display, "/lib/font/bit/lucsans/unicode.14.font");
+    
+    /* Fallback to default font if not available */
+    if(h3font == nil)
+        h3font = font;
+    if(h4font == nil)
+        h4font = font;
     
     /* Load bold and italic variants of the default font size */
     h5font = bold = openfont(display, "/lib/font/bit/lucsans/typebold.14.font");
     if(h5font == nil)
         h5font = bold = font;
     
-    h6font = italic = openfont(display, "/lib/font/bit/lucsans/typeitalic.14.font");
-    if(h6font == nil)
-        h6font = italic = font;
+    if(h6font == nil) {
+        h6font = italic = openfont(display, "/lib/font/bit/lucsans/typeitalic.14.font");
+        if(h6font == nil)
+            h6font = italic = font;
+    }
     
     /* Adjust line height based on font size */
     line_height = font->height + 4;  /* More spacing between lines */
@@ -156,15 +192,43 @@ newsegment(char *text, int format)
 }
 
 void
+freeimagedata(ImageData *img)
+{
+    if(img == nil)
+        return;
+    
+    if(img->img != nil) {
+        /* Use Plan 9's freeimage function */
+        freeimage(img->img);
+        img->img = nil;
+    }
+    
+    free(img);
+}
+
+void
 freeline(Line *line)
 {
-    TextSegment *seg = line->segments;
+    TextSegment *seg, *next;
+    int i;
+    
+    /* Free text segments */
+    seg = line->segments;
     while(seg != nil) {
-        TextSegment *next = seg->next;
+        next = seg->next;
         free(seg);
         seg = next;
     }
-    line->segments = nil;
+    
+    /* Free table cell text if allocated */
+    for(i = 0; i < line->table.ncells; i++) {
+        if(line->table.cells[i].text != nil)
+            free(line->table.cells[i].text);
+    }
+    
+    /* Free image if present */
+    if(line->image != nil)
+        freeimagedata(line->image);
 }
 
 void
@@ -249,6 +313,13 @@ parseline(char *line, Line *out)
     out->list_level = indent / 2;
     if(out->list_level >= MAXNEST)
         out->list_level = MAXNEST - 1;
+
+    /* Check for image syntax ![alt](path) */
+    if(p[0] == '!' && p[1] == '[') {
+        out->type = IMAGE;
+        out->image = parseimage(p);
+        return 1;
+    }
     
     /* Check for table rows */
     if(strchr(line, '|') != nil) {
@@ -305,8 +376,158 @@ parseline(char *line, Line *out)
 void
 drawtext(char *text, Point p, Image *col, Font *f, int maxwidth)
 {
-    USED(maxwidth);  /* Mark parameter as intentionally unused */
-    string(screen, p, col, ZP, f, text);
+    char line[MAXLINELEN];
+    char word[MAXLINELEN];
+    int start_y = p.y;
+    char *t = text;
+    int pos = 0;
+    int word_pos = 0;
+    int line_width = 0;
+    Rectangle bounds = screen->r;
+    int lines_drawn = 0;
+    
+    /* If text fits on one line, just draw it */
+    if(stringwidth(f, text) <= maxwidth) {
+        string(screen, p, col, ZP, f, text);
+        p.y += f->height;
+        return;
+    }
+    
+    /* Start wrapping text by words */
+    memset(line, 0, sizeof(line));
+    memset(word, 0, sizeof(word));
+    
+    while(*t) {
+        /* Handle whitespace */
+        if(*t == ' ' || *t == '\t' || *t == '\n') {
+            /* End current word */
+            if(word_pos > 0) {
+                word[word_pos] = '\0';
+                
+                /* Check if adding this word exceeds line width */
+                int word_width = stringwidth(f, word);
+                
+                /* If this is a single word that's too long, we need to draw it anyway */
+                if(pos == 0 && word_width > maxwidth) {
+                    strcpy(line, word);
+                    pos = word_pos;
+                    line[pos] = '\0';
+                    
+                    if(p.y + f->height <= bounds.max.y - margin.y) {
+                        string(screen, p, col, ZP, f, line);
+                        p.y += f->height;
+                        lines_drawn++;
+                    }
+                    
+                    pos = 0;
+                    line_width = 0;
+                    memset(line, 0, sizeof(line));
+                }
+                /* Check if adding this word would exceed line width */
+                else if(pos > 0 && line_width + word_width + stringwidth(f, " ") > maxwidth) {
+                    /* Line would be too long, end current line */
+                    line[pos] = '\0';
+                    if(p.y + f->height <= bounds.max.y - margin.y) {
+                        string(screen, p, col, ZP, f, line);
+                        p.y += f->height;
+                        lines_drawn++;
+                    }
+                    
+                    /* Start a new line with this word */
+                    pos = 0;
+                    line_width = 0;
+                    memset(line, 0, sizeof(line));
+                    
+                    strcpy(line, word);
+                    pos = word_pos;
+                    line_width = word_width;
+                }
+                else {
+                    /* Add word to line */
+                    if(pos > 0 && pos < MAXLINELEN-1) {
+                        line[pos++] = ' ';
+                        line_width += stringwidth(f, " ");
+                    }
+                    
+                    strncpy(line + pos, word, MAXLINELEN - pos - 1);
+                    pos += word_pos;
+                    line_width += word_width;
+                }
+                
+                /* Reset word buffer */
+                word_pos = 0;
+                memset(word, 0, sizeof(word));
+            }
+            
+            /* Skip consecutive whitespace */
+            while(*t == ' ' || *t == '\t' || *t == '\n') 
+                t++;
+            continue;
+        }
+        
+        /* Add character to current word */
+        if(word_pos < MAXLINELEN-1) {
+            word[word_pos++] = *t;
+        }
+        t++;
+    }
+    
+    /* Add final word if any */
+    if(word_pos > 0) {
+        word[word_pos] = '\0';
+        
+        /* Check if adding this word exceeds line width */
+        int word_width = stringwidth(f, word);
+        
+        /* If this is a single word that's too long, we need to draw it anyway */
+        if(pos == 0 && word_width > maxwidth) {
+            strcpy(line, word);
+            pos = word_pos;
+        }
+        /* Check if adding this word would exceed line width */
+        else if(pos > 0 && line_width + word_width + stringwidth(f, " ") > maxwidth) {
+            /* Line would be too long, end current line */
+            line[pos] = '\0';
+            if(p.y + f->height <= bounds.max.y - margin.y) {
+                string(screen, p, col, ZP, f, line);
+                p.y += f->height;
+                lines_drawn++;
+            }
+            
+            /* Start a new line with this word */
+            pos = 0;
+            line_width = 0;
+            memset(line, 0, sizeof(line));
+            
+            strcpy(line, word);
+            pos = word_pos;
+        }
+        else {
+            /* Add word to line */
+            if(pos > 0 && pos < MAXLINELEN-1) {
+                line[pos++] = ' ';
+                line_width += stringwidth(f, " ");
+            }
+            
+            strncpy(line + pos, word, MAXLINELEN - pos - 1);
+            pos += word_pos;
+        }
+    }
+    
+    /* Draw final line if any */
+    if(pos > 0) {
+        line[pos] = '\0';
+        if(p.y + f->height <= bounds.max.y - margin.y) {
+            string(screen, p, col, ZP, f, line);
+            p.y += f->height;
+            lines_drawn++;
+        }
+    }
+    
+    /* If no lines were drawn, we still need to advance y position */
+    if(lines_drawn == 0 && p.y == start_y) {
+        p.y += f->height;
+    }
 }
 
 void
@@ -381,14 +602,12 @@ drawslide(int n)
     Line *line;
     int i;
     Rectangle bounds;
-    int content_width;
     
     if(n < 0 || n >= nslides)
         return;
     
     /* Calculate content bounds based on window size */
     bounds = screen->r;
-    content_width = bounds.max.x - bounds.min.x - 2*margin.x;
     
     /* Clear screen with white background */
     draw(screen, bounds, display->white, nil, ZP);
@@ -420,9 +639,14 @@ drawslide(int n)
         switch(line->type) {
         case HEADER1:
             if(p.y + h1font->height <= bounds.max.y - margin.y) {
-                p.y += 20;  /* More space before H1 */
-                string(screen, p, h1color, ZP, h1font, line->text);
-                p.y += 2.5 * font->height;  /* More space after H1 */
+                /* More space before H1 */
+                p.y += 20;
+                
+                /* Draw as a single operation */
+                if(p.y + h1font->height <= bounds.max.y - margin.y) {
+                    string(screen, p, h1color, ZP, h1font, line->text);
+                    p.y += h1font->height + 10; /* Add space after header */
+                }
             } else {
                 p.y = bounds.max.y;  /* Force exit from loop */
             }
@@ -430,9 +654,14 @@ drawslide(int n)
             
         case HEADER2:
             if(p.y + h2font->height <= bounds.max.y - margin.y) {
-                p.y += 15;  /* Space before H2 */
-                string(screen, p, h2color, ZP, h2font, line->text);
-                p.y += 2 * font->height;
+                /* Space before H2 */
+                p.y += 15;
+                
+                /* Draw as a single operation */
+                if(p.y + h2font->height <= bounds.max.y - margin.y) {
+                    string(screen, p, h2color, ZP, h2font, line->text);
+                    p.y += h2font->height + 8; /* Add space after header */
+                }
             } else {
                 p.y = bounds.max.y;
             }
@@ -440,9 +669,14 @@ drawslide(int n)
             
         case HEADER3:
             if(p.y + h3font->height <= bounds.max.y - margin.y) {
-                p.y += 10;  /* Space before H3 */
-                string(screen, p, h3color, ZP, h3font, line->text);
-                p.y += 1.5 * font->height;
+                /* Space before H3 */
+                p.y += 10;
+                
+                /* Draw as a single operation */
+                if(p.y + h3font->height <= bounds.max.y - margin.y) {
+                    string(screen, p, h3color, ZP, h3font, line->text);
+                    p.y += h3font->height + 6; /* Add space after header */
+                }
             } else {
                 p.y = bounds.max.y;
             }
@@ -450,9 +684,14 @@ drawslide(int n)
             
         case HEADER4:
             if(p.y + h4font->height <= bounds.max.y - margin.y) {
-                p.y += 5;  /* Small space before H4 */
-                string(screen, p, h4color, ZP, h4font, line->text);
-                p.y += 1.2 * font->height;
+                /* Small space before H4 */
+                p.y += 5;
+                
+                /* Draw as a single operation */
+                if(p.y + h4font->height <= bounds.max.y - margin.y) {
+                    string(screen, p, h4color, ZP, h4font, line->text);
+                    p.y += h4font->height + 4; /* Add space after header */
+                }
             } else {
                 p.y = bounds.max.y;
             }
@@ -460,8 +699,9 @@ drawslide(int n)
             
         case HEADER5:
             if(p.y + h5font->height <= bounds.max.y - margin.y) {
+                /* Draw as a single operation */
                 string(screen, p, h5color, ZP, h5font, line->text);
-                p.y += 1.1 * font->height;
+                p.y += h5font->height + 2; /* Add space after header */
             } else {
                 p.y = bounds.max.y;
             }
@@ -469,8 +709,9 @@ drawslide(int n)
             
         case HEADER6:
             if(p.y + h6font->height <= bounds.max.y - margin.y) {
+                /* Draw as a single operation */
                 string(screen, p, h6color, ZP, h6font, line->text);
-                p.y += font->height;
+                p.y += h6font->height + 2; /* Add space after header */
             } else {
                 p.y = bounds.max.y;
             }
@@ -480,9 +721,29 @@ drawslide(int n)
             if(p.y + font->height <= bounds.max.y - margin.y) {
                 string(screen, p, display->black, ZP, font, "•");
                 p.x += 20;
-                if(p.x < bounds.max.x - margin.x)
-                    string(screen, p, display->black, ZP, font, line->text);
-                p.y += font->height;
+                
+                /* Recalculate available width after bullet point */
+                available_width = bounds.max.x - margin.x - p.x;
+                if(available_width < 0)
+                    available_width = 0;
+                    
+                if(p.x < bounds.max.x - margin.x) {
+                    /* Use drawtext for wrapping */
+                    Point listP = p;
+                    drawtext(line->text, listP, display->black, font, available_width);
+                    /* We need to manually advance p.y here since drawtext modifies a copy */
+                    int textWidth = stringwidth(font, line->text);
+                    if(textWidth <= available_width) {
+                        p.y += font->height; /* Single line */
+                    } else {
+                        /* Estimate wrapped lines - this is imprecise but better than nothing */
+                        int lines = (textWidth / available_width) + 1;
+                        p.y += font->height * lines;
+                    }
+                }
+                    
+                /* Reset p.x for the next line */
+                p.x = bounds.min.x + margin.x + line->indent * 10;
             } else {
                 p.y = bounds.max.y;
             }
@@ -490,12 +751,35 @@ drawslide(int n)
             
         case BLOCKQUOTE:
             if(p.y + font->height <= bounds.max.y - margin.y) {
-                Rectangle quote_bar = Rect(p.x - 5, p.y, p.x - 2, p.y + font->height);
+                Rectangle quote_bar = Rect(bounds.min.x + margin.x, p.y, 
+                                           bounds.min.x + margin.x + 3, 
+                                           p.y + font->height * 2);
+                                           
+                /* Draw quote bar */
                 if(quote_bar.max.x <= bounds.max.x - margin.x) {
                     draw(screen, quote_bar, display->black, nil, ZP);
-                    string(screen, p, display->black, ZP, italic, line->text);
                 }
-                p.y += font->height;
+                
+                /* Move text right of the quote bar */
+                p.x += 10;
+                available_width -= 10;
+                
+                if(available_width > 0) {
+                    Point quoteP = p;
+                    drawtext(line->text, quoteP, display->black, italic, available_width);
+                    /* We need to manually advance p.y here since drawtext modifies a copy */
+                    int textWidth = stringwidth(font, line->text);
+                    if(textWidth <= available_width) {
+                        p.y += font->height; /* Single line */
+                    } else {
+                        /* Estimate wrapped lines - this is imprecise but better than nothing */
+                        int lines = (textWidth / available_width) + 1;
+                        p.y += font->height * lines;
+                    }
+                }
+                    
+                /* Reset p.x for the next line */
+                p.x = bounds.min.x + margin.x + line->indent * 10;
             } else {
                 p.y = bounds.max.y;
             }
@@ -527,10 +811,27 @@ drawslide(int n)
                 p.y = bounds.max.y;
             break;
             
+        case IMAGE:
+            if(line->image != nil && p.y < bounds.max.y - margin.y) {
+                drawimage(line->image, &p);
+            } else {
+                p.y = bounds.max.y;
+            }
+            break;
+            
         default:
             if(p.y + font->height <= bounds.max.y - margin.y) {
-                string(screen, p, display->black, ZP, font, line->text);
-                p.y += font->height;
+                Point textP = p;
+                drawtext(line->text, textP, display->black, font, available_width);
+                /* We need to manually advance p.y here since drawtext modifies a copy */
+                int textWidth = stringwidth(font, line->text);
+                if(textWidth <= available_width) {
+                    p.y += font->height; /* Single line */
+                } else {
+                    /* Estimate wrapped lines - this is imprecise but better than nothing */
+                    int lines = (textWidth / available_width) + 1;
+                    p.y += font->height * lines;
+                }
             } else {
                 p.y = bounds.max.y;
             }
@@ -1134,6 +1435,129 @@ drawcodeblock(CodeBlock *cb, Point *p)
         p->y = bounds.max.y - margin.y;
 }
 
+ImageData*
+parseimage(char *line)
+{
+    ImageData *img;
+    char *alt_start, *alt_end;
+    char *path_start, *path_end;
+    
+    img = malloc(sizeof(ImageData));
+    if(img == nil)
+        sysfatal("malloc failed");
+    
+    memset(img, 0, sizeof(ImageData));
+    
+    /* Parse alt text between ![...] */
+    alt_start = strchr(line, '[');
+    if(alt_start == nil) {
+        free(img);
+        return nil;
+    }
+    alt_start++; /* Skip the [ */
+    
+    alt_end = strchr(alt_start, ']');
+    if(alt_end == nil) {
+        free(img);
+        return nil;
+    }
+    
+    /* Copy alt text */
+    strncpy(img->alt, alt_start, alt_end - alt_start);
+    img->alt[alt_end - alt_start] = '\0';
+    
+    /* Parse image path between (...) */
+    path_start = strchr(alt_end, '(');
+    if(path_start == nil) {
+        free(img);
+        return nil;
+    }
+    path_start++; /* Skip the ( */
+    
+    path_end = strchr(path_start, ')');
+    if(path_end == nil) {
+        free(img);
+        return nil;
+    }
+    
+    /* Copy path */
+    strncpy(img->path, path_start, path_end - path_start);
+    img->path[path_end - path_start] = '\0';
+    
+    /* Initialize image pointer as nil - will be loaded when displayed */
+    img->img = nil;
+    
+    return img;
+}
+
+void
+drawimage(ImageData *img, Point *p)
+{
+    Point pt = *p;
+    int width, height;
+    Image *image;
+    Rectangle r;
+    int fd;
+    
+    if(img == nil)
+        return;
+    
+    /* Load image if not already loaded */
+    if(img->img == nil) {
+        fd = open(img->path, OREAD);
+        if(fd < 0) {
+            /* If image load fails, display alt text and error message */
+            string(screen, pt, text, ZP, font, img->alt);
+            pt.y += font->height;
+            string(screen, pt, display->black, ZP, font, "(Image load failed)");
+            pt.y += font->height * 2;
+            *p = pt;
+            return;
+        }
+        
+        image = readimage(display, fd, 0);
+        close(fd);
+        
+        if(image == nil) {
+            /* If image load fails, display alt text and error message */
+            string(screen, pt, text, ZP, font, img->alt);
+            pt.y += font->height;
+            string(screen, pt, display->black, ZP, font, "(Image load failed)");
+            pt.y += font->height * 2;
+            *p = pt;
+            return;
+        }
+        img->img = image;
+    }
+    
+    /* Draw the image */
+    width = Dx(img->img->r);
+    height = Dy(img->img->r);
+    
+    /* Scale down if too wide */
+    Rectangle bounds = screen->r;
+    int max_width = bounds.max.x - bounds.min.x - 2*margin.x - pt.x + bounds.min.x;
+    
+    /* If image is wider than available space, scale it down proportionally */
+    if(width > max_width && max_width > 0) {
+        int scale_factor = (max_width * 100) / width;
+        width = (width * scale_factor) / 100;
+        height = (height * scale_factor) / 100;
+    }
+    
+    /* Create rectangle for drawing */
+    r = Rect(pt.x, pt.y, pt.x + width, pt.y + height);
+    
+    /* Draw the image */
+    draw(screen, r, img->img, nil, ZP);
+    
+    /* Add some space after the image */
+    pt.y += height + font->height;
+    
+    /* Update position */
+    *p = pt;
+}
+
 void
 main(int argc, char *argv[])
 {
@@ -1155,10 +1579,7 @@ main(int argc, char *argv[])
     if(initdraw(nil, nil, "slides") < 0)
         sysfatal("initdraw failed: %r");
     
-    /* Load font */
-    font = openfont(display, "/lib/font/bit/pelm/unicode.9.font");
-    if(font == nil)
-        sysfatal("cannot load font: %r");
+    /* Default font is set by setupdraw which checks environment variables */
     
     /* Set up display */
     setupdraw();
